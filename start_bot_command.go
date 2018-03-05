@@ -7,15 +7,13 @@ import (
 var StartBotCommand = cli.Command{
 	Name:  "start-bot",
 	Usage: "Start Telegram bot",
-	Flags: StartBotFlags,
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "bot-token",
+			Usage: "Token for Telegram API",
+		},
+	},
 	Action: func(c *cli.Context) error {
 		return nil
-	},
-}
-
-var StartBotFlags = []cli.Flag{
-	&cli.StringFlag{
-		Name:  "bot-token",
-		Usage: "Token for Telegram API",
 	},
 }
