@@ -1,0 +1,20 @@
+hash: 1996cef1257df37f102a0b9a71b7dd4fac3ab247a31019d57bbfddb6d6423944
+updated: 2018-09-04T10:12:22.030467012+06:00
+imports:
+- name: github.com/armon/go-radix
+  version: 1a2de0c21c94309923825da3df33a4381872c795
+- name: github.com/blevesearch/bleve
+  version: 1a319cdf5bf77dc8cee35a6b99f908792c2547ef
+  subpackages:
+  - '...'
+- name: github.com/blevesearch/snowballstem
+  version: 26b06a2c243d4f8ca5db3486f94409dd5b2a7467
+- name: github.com/davecgh/go-spew
+  version: 8991bc29aa16c548c550c7ff78260e27b9ab7c73
+  subpackages:
+  - spew
+- name: github.com/go-sql-driver/mysql
+  version: d523deb1b23d913de5bdada721a6071e71283618
+- name: gopkg.in/urfave/cli.v2
+  version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
+testImports: []
