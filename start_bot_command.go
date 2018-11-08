@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/search"
@@ -54,8 +55,14 @@ var StartBotCommand = cli.Command{
 			return searchResult
 		}
 
-		firstHit := func(sr *bleve.SearchResult) string {
-			return strings.Replace(sr.Hits[0].Fields["Value"].(string), "&nbsp;", "", -1)
+		firstHit := func(sr *bleve.SearchResult) (string, error) {
+			if len(sr.Hits) == 0 {
+				return "", errors.New("No Hits")
+			}
+			hitValue := strings.Replace(sr.Hits[0].Fields["Value"].(string), "&nbsp;", "", -1)
+			hitKeyword := strings.Join([]string{"<b>", sr.Hits[0].Fields["Keyword"].(string), "</b>"}, "")
+
+			return strings.Join([]string{hitKeyword, hitValue}, "\n"), nil
 		}
 
 		buttons := func(hits search.DocumentMatchCollection, query string) [][]tb.InlineButton {
@@ -95,10 +102,18 @@ var StartBotCommand = cli.Command{
 				searchResult := searchFunction(term)
 				buttons := buttons(searchResult.Hits, term)
 
-				translation := strings.Replace(docIDSearchResult.Hits[0].Fields["Value"].(string), "&nbsp;", "", -1)
-				b.Edit(c.Message, translation, &tb.ReplyMarkup{
-					InlineKeyboard: buttons,
-				})
+				messageText, err := firstHit(docIDSearchResult)
+
+				if err == nil {
+					b.Edit(c.Message,
+						messageText,
+						&tb.SendOptions{
+							ParseMode: tb.ModeHTML,
+						},
+						&tb.ReplyMarkup{
+							InlineKeyboard: buttons,
+						})
+				}
 
 				// always respond!
 				b.Respond(c, &tb.CallbackResponse{
@@ -114,11 +129,19 @@ var StartBotCommand = cli.Command{
 				searchResult := searchFunction(term)
 				buttons := buttons(searchResult.Hits, term)
 
-				responseText := firstHit(searchResult)
+				messageText, err := firstHit(searchResult)
 
-				b.Send(m.Sender, responseText, &tb.ReplyMarkup{
-					InlineKeyboard: buttons,
-				})
+				if err == nil {
+					spew.Dump(messageText)
+					b.Send(m.Sender,
+						messageText,
+						&tb.SendOptions{
+							ParseMode: tb.ModeHTML,
+						},
+						&tb.ReplyMarkup{
+							InlineKeyboard: buttons,
+						})
+				}
 			}, nil)
 		})
 
