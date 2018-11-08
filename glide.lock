@@ -1,5 +1,5 @@
-hash: 1996cef1257df37f102a0b9a71b7dd4fac3ab247a31019d57bbfddb6d6423944
-updated: 2018-09-04T10:12:22.030467012+06:00
+hash: 5b9d1beb8c0d3c1c9a4602dd001ee46c05eae729ebfff01c2a47f93bd91aa4c7
+updated: 2018-11-09T00:28:22.811627+06:00
 imports:
 - name: github.com/armon/go-radix
   version: 1a2de0c21c94309923825da3df33a4381872c795
@@ -7,14 +7,115 @@ imports:
   version: 1a319cdf5bf77dc8cee35a6b99f908792c2547ef
   subpackages:
   - '...'
+  - analysis
+  - analysis/analyzer/standard
+  - analysis/datetime/flexible
+  - analysis/datetime/optional
+  - analysis/lang/en
+  - analysis/lang/ru
+  - analysis/token/lowercase
+  - analysis/token/porter
+  - analysis/token/stop
+  - analysis/tokenizer/unicode
+  - document
+  - geo
+  - index
+  - index/scorch
+  - index/scorch/mergeplan
+  - index/scorch/segment
+  - index/scorch/segment/mem
+  - index/scorch/segment/zap
+  - index/store
+  - index/store/boltdb
+  - index/store/gtreap
+  - index/upsidedown
+  - mapping
+  - numeric
+  - registry
+  - search
+  - search/collector
+  - search/facet
+  - search/highlight
+  - search/highlight/format/html
+  - search/highlight/fragmenter/simple
+  - search/highlight/highlighter/html
+  - search/highlight/highlighter/simple
+  - search/query
+  - search/scorer
+  - search/searcher
+- name: github.com/blevesearch/go-porterstemmer
+  version: 23a2c8e5cf1f380f27722c6d2ae8896431dc7d0e
+  repo: https://github.com/blevesearch/go-porterstemmer
+- name: github.com/blevesearch/segment
+  version: db70c57796cc8c310613541dfade3dce627d09c7
+  repo: https://github.com/blevesearch/segment
 - name: github.com/blevesearch/snowballstem
   version: 26b06a2c243d4f8ca5db3486f94409dd5b2a7467
+  subpackages:
+  - russian
+- name: github.com/boltdb/bolt
+  version: 9da31745363232bc1e27dbab3569e77383a51585
+  repo: https://github.com/boltdb/bolt
+- name: github.com/couchbase/vellum
+  version: 01d5c56e609533acd717717c8acc0d2dea6bfb89
+  subpackages:
+  - regexp
+  - utf8
 - name: github.com/davecgh/go-spew
   version: 8991bc29aa16c548c550c7ff78260e27b9ab7c73
   subpackages:
   - spew
+- name: github.com/edsrzf/mmap-go
+  version: 0bce6a6887123b67a60366d2c9fe2dfb74289d2e
+- name: github.com/getsentry/raven-go
+  version: 3033899c76deb3fb6570d9c4074d00443aeab88f
+- name: github.com/glycerine/go-unsnap-stream
+  version: 9f0cb55181dd3a0a4c168d3dbc72d4aca4853126
 - name: github.com/go-sql-driver/mysql
   version: d523deb1b23d913de5bdada721a6071e71283618
+- name: github.com/golang/protobuf
+  version: 655cdfa588ea190e901bc5590e65d5621688847c
+  repo: https://github.com/golang/protobuf
+  subpackages:
+  - proto
+- name: github.com/golang/snappy
+  version: cef980a12b316c5b7e5bb3a8e168eb43ae999a88
+  repo: https://github.com/golang/snappy
+- name: github.com/mschoch/smat
+  version: 90eadee771aeab36e8bf796039b8c261bebebe4f
+- name: github.com/philhofer/fwd
+  version: bb6d471dc95d4fe11e432687f8b70ff496cf3136
+- name: github.com/pkg/errors
+  version: 059132a15dd08d6704c67711dae0cf35ab991756
+- name: github.com/RoaringBitmap/roaring
+  version: 627b662e6d11b18beaff2266712a59f8845f3d35
+- name: github.com/Smerity/govarint
+  version: 7265e41f48f15fd61751e16da866af3c704bb3ab
+- name: github.com/steveyen/gtreap
+  version: 0abe01ef9be25c4aedc174758ec2d917314d6d70
+  repo: https://github.com/steveyen/gtreap
+- name: github.com/tinylib/msgp
+  version: f65876d3ea05943d6613bca6b8ed391843044bd4
+  subpackages:
+  - msgp
+- name: github.com/willf/bitset
+  version: 2e6e8094ef4745224150c88c16191c7dceaad16f
+  repo: https://github.com/willf/bitset
+- name: golang.org/x/net
+  version: e45385e9b226f570b1f086bf287b25d3d4117776
+  repo: https://go.googlesource.com/net
+  subpackages:
+  - context
+- name: golang.org/x/sys
+  version: 66b7b1311ac80bbafcd2daeef9a5e6e2cd1e2399
+  subpackages:
+  - unix
+- name: google.golang.org/appengine
+  version: 4a4468ece617fc8205e99368fa2200e9d1fad421
+  subpackages:
+  - cloudsql
+- name: gopkg.in/tucnak/telebot.v2
+  version: 2adea7c8be7158999ca414230da5c0314d6382ab
 - name: gopkg.in/urfave/cli.v2
   version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 testImports: []

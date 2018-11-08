@@ -15,3 +15,5 @@ import:
 - package: github.com/blevesearch/snowballstem
 - package: github.com/armon/go-radix
   version: ~1.0.0
+- package: github.com/getsentry/raven-go
+  version: ^0.1.0
