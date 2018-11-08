@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/blevesearch/bleve"
+	"github.com/blevesearch/bleve/search"
 	"github.com/davecgh/go-spew/spew"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"gopkg.in/urfave/cli.v2" // imports as package "cli"
@@ -41,60 +42,78 @@ var StartBotCommand = cli.Command{
 			panic(err)
 		}
 
-		b.Handle("/translate", func(m *tb.Message) {
-			term := fmt.Sprintf("Keyword:%s^5 Value:%s", m.Payload, m.Payload)
-			// term := m.Payload
+		searchFunction := func(term string) *bleve.SearchResult {
 			query := bleve.NewQueryStringQuery(term)
 
 			searchRequest := bleve.NewSearchRequest(query)
 			searchRequest.Fields = []string{"Keyword", "Value"}
 			searchResult, _ := index.Search(searchRequest)
-			responseText := strings.Replace(searchResult.Hits[0].Fields["Value"].(string), "&nbsp;", "", -1)
-			b.Send(m.Sender, responseText)
+			return searchResult
+		}
+
+		firstHit := func(sr *bleve.SearchResult) string {
+			return strings.Replace(sr.Hits[0].Fields["Value"].(string), "&nbsp;", "", -1)
+		}
+
+		buttons := func(hits search.DocumentMatchCollection, query string) [][]tb.InlineButton {
+			var inlineButtons []tb.InlineButton
+			for _, hit := range hits {
+				uniqueString := strings.Join([]string{hit.ID, query}, ",")
+				inlineBtn := tb.InlineButton{
+					Unique: uniqueString,
+					Text:   hit.Fields["Keyword"].(string),
+				}
+
+				inlineButtons = append(inlineButtons, inlineBtn)
+			}
+
+			return [][]tb.InlineButton{inlineButtons}
+		}
+
+		// b.Handle("/translate", func(m *tb.Message) {
+		// 	term := fmt.Sprintf("Keyword:%s^5 Value:%s", m.Payload, m.Payload)
+		// 	searchResult := searchFunction(term)
+		// 	responseText := firstHit(searchResult)
+		// 	b.Send(m.Sender, responseText)
+		// })
+
+		b.Handle(tb.OnCallback, func(c *tb.Callback) {
+			// on inline button pressed (callback!)
+			splittedStrings := strings.SplitN(c.Data, ",", 2)
+			wordID := strings.TrimSpace(splittedStrings[0])
+			term := splittedStrings[1]
+
+			query := bleve.NewDocIDQuery([]string{wordID})
+			searchRequest := bleve.NewSearchRequest(query)
+			searchRequest.Fields = []string{"Keyword", "Value"}
+			docIDSearchResult, _ := index.Search(searchRequest)
+
+			searchResult := searchFunction(term)
+			buttons := buttons(searchResult.Hits, term)
+
+			translation := strings.Replace(docIDSearchResult.Hits[0].Fields["Value"].(string), "&nbsp;", "", -1)
+			b.Edit(c.Message, translation, &tb.ReplyMarkup{
+				InlineKeyboard: buttons,
+			})
+
+			// always respond!
+			b.Respond(c, &tb.CallbackResponse{
+				CallbackID: c.ID,
+			})
 		})
 
 		b.Handle(tb.OnText, func(m *tb.Message) {
-			spew.Dump(m)
-			spew.Dump(m.Payload)
+			spew.Dump()
 			term := fmt.Sprintf("Keyword:%s^5 Value:%s", m.Text, m.Text)
-			// term := m.Payload
-			query := bleve.NewQueryStringQuery(term)
 
-			searchRequest := bleve.NewSearchRequest(query)
-			searchRequest.Fields = []string{"Keyword", "Value"}
-			searchResult, _ := index.Search(searchRequest)
-			responseText := strings.Replace(searchResult.Hits[0].Fields["Value"].(string), "&nbsp;", "", -1)
-			b.Send(m.Sender, responseText)
+			searchResult := searchFunction(term)
+			buttons := buttons(searchResult.Hits, term)
+
+			responseText := firstHit(searchResult)
+			b.Send(m.Sender, responseText, &tb.ReplyMarkup{
+				InlineKeyboard: buttons,
+			})
 		})
-
-		// b.Handle(tb.OnQuery, func(q *tb.Query) {
-		// 	urls := []string{
-		// 		"http://photo.jpg",
-		// 		"http://photo2.jpg",
-		// 	}
-
-		// 	results := make(tb.Results, len(urls)) // []tb.Result
-		// 	for i, url := range urls {
-		// 		result := &tb.PhotoResult{
-		// 			URL: url,
-
-		// 			// required for photos
-		// 			ThumbURL: url,
-		// 		}
-
-		// 		results[i] = result
-		// 		results[i].SetResultID(strconv.Itoa(i)) // It's needed to set a unique string ID for each result
-		// 	}
-
-		// 	err := b.Answer(q, &tb.QueryResponse{
-		// 		Results:   results,
-		// 		CacheTime: 60, // a minute
-		// 	})
-
-		// 	if err != nil {
-		// 		fmt.Println(err)
-		// 	}
-		// })
 
 		b.Start()
 
