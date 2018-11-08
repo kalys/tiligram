@@ -27,10 +27,15 @@ var StartBotCommand = cli.Command{
 			Usage: "Path where index is stored",
 			Value: "bleve.search",
 		},
+		&cli.StringFlag{
+			Name:  "raven-dsn",
+			Usage: "DSN for sentry",
+			Value: "some-dsn",
+		},
 	},
 	Action: func(c *cli.Context) error {
 		spew.Dump()
-		raven.SetDSN("https://3c6494f634b9481d80fef1f3473c1ef1:78ed97859e6043dd82f6c9015ab11c05@sentry.io/1318463")
+		raven.SetDSN(c.String("raven-dsn"))
 
 		index, err := bleve.Open(c.String("index-path"))
 		if err != nil {
