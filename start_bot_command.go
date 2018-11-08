@@ -5,6 +5,7 @@ import (
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/search"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/getsentry/raven-go"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"gopkg.in/urfave/cli.v2" // imports as package "cli"
 	_ "strconv"
@@ -27,8 +28,10 @@ var StartBotCommand = cli.Command{
 		},
 	},
 	Action: func(c *cli.Context) error {
+		spew.Dump()
+		raven.SetDSN("https://3c6494f634b9481d80fef1f3473c1ef1:78ed97859e6043dd82f6c9015ab11c05@sentry.io/1318463")
+
 		index, err := bleve.Open(c.String("index-path"))
-		_ = index // FIXME
 		if err != nil {
 			panic(err)
 		}
@@ -78,41 +81,45 @@ var StartBotCommand = cli.Command{
 		// })
 
 		b.Handle(tb.OnCallback, func(c *tb.Callback) {
-			// on inline button pressed (callback!)
-			splittedStrings := strings.SplitN(c.Data, ",", 2)
-			wordID := strings.TrimSpace(splittedStrings[0])
-			term := splittedStrings[1]
+			raven.CapturePanic(func() {
+				// on inline button pressed (callback!)
+				splittedStrings := strings.SplitN(c.Data, ",", 2)
+				wordID := strings.TrimSpace(splittedStrings[0])
+				term := splittedStrings[1]
 
-			query := bleve.NewDocIDQuery([]string{wordID})
-			searchRequest := bleve.NewSearchRequest(query)
-			searchRequest.Fields = []string{"Keyword", "Value"}
-			docIDSearchResult, _ := index.Search(searchRequest)
+				query := bleve.NewDocIDQuery([]string{wordID})
+				searchRequest := bleve.NewSearchRequest(query)
+				searchRequest.Fields = []string{"Keyword", "Value"}
+				docIDSearchResult, _ := index.Search(searchRequest)
 
-			searchResult := searchFunction(term)
-			buttons := buttons(searchResult.Hits, term)
+				searchResult := searchFunction(term)
+				buttons := buttons(searchResult.Hits, term)
 
-			translation := strings.Replace(docIDSearchResult.Hits[0].Fields["Value"].(string), "&nbsp;", "", -1)
-			b.Edit(c.Message, translation, &tb.ReplyMarkup{
-				InlineKeyboard: buttons,
-			})
+				translation := strings.Replace(docIDSearchResult.Hits[0].Fields["Value"].(string), "&nbsp;", "", -1)
+				b.Edit(c.Message, translation, &tb.ReplyMarkup{
+					InlineKeyboard: buttons,
+				})
 
-			// always respond!
-			b.Respond(c, &tb.CallbackResponse{
-				CallbackID: c.ID,
-			})
+				// always respond!
+				b.Respond(c, &tb.CallbackResponse{
+					CallbackID: c.ID,
+				})
+			}, nil)
 		})
 
 		b.Handle(tb.OnText, func(m *tb.Message) {
-			spew.Dump()
-			term := fmt.Sprintf("Keyword:%s^5 Value:%s", m.Text, m.Text)
+			raven.CapturePanic(func() {
+				term := fmt.Sprintf("Keyword:%s^5 Value:%s", m.Text, m.Text)
 
-			searchResult := searchFunction(term)
-			buttons := buttons(searchResult.Hits, term)
+				searchResult := searchFunction(term)
+				buttons := buttons(searchResult.Hits, term)
 
-			responseText := firstHit(searchResult)
-			b.Send(m.Sender, responseText, &tb.ReplyMarkup{
-				InlineKeyboard: buttons,
-			})
+				responseText := firstHit(searchResult)
+
+				b.Send(m.Sender, responseText, &tb.ReplyMarkup{
+					InlineKeyboard: buttons,
+				})
+			}, nil)
 		})
 
 		b.Start()
