@@ -1,5 +1,5 @@
-hash: 5b9d1beb8c0d3c1c9a4602dd001ee46c05eae729ebfff01c2a47f93bd91aa4c7
-updated: 2018-11-09T00:28:22.811627+06:00
+hash: e2c865feff11ea52e32b0a26e352f058284d8ba6fa5bcc6acacd88212ed3214f
+updated: 2018-11-09T00:33:02.50389+06:00
 imports:
 - name: github.com/armon/go-radix
   version: 1a2de0c21c94309923825da3df33a4381872c795
@@ -56,6 +56,8 @@ imports:
 - name: github.com/boltdb/bolt
   version: 9da31745363232bc1e27dbab3569e77383a51585
   repo: https://github.com/boltdb/bolt
+- name: github.com/certifi/gocertifi
+  version: deb3ae2ef2610fde3330947281941c562861188b
 - name: github.com/couchbase/vellum
   version: 01d5c56e609533acd717717c8acc0d2dea6bfb89
   subpackages:
