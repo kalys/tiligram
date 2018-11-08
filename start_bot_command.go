@@ -80,6 +80,14 @@ var StartBotCommand = cli.Command{
 			return [][]tb.InlineButton{inlineButtons}
 		}
 
+		startHelpHandler := func(m *tb.Message) {
+			responseText := "Вебсайт: http://tili.kg\nКонтакты: @kalys, kalys@osmonov.com"
+			b.Send(m.Sender, responseText)
+		}
+
+		b.Handle("/help", startHelpHandler)
+		b.Handle("/start", startHelpHandler)
+
 		// b.Handle("/translate", func(m *tb.Message) {
 		// 	term := fmt.Sprintf("Keyword:%s^5 Value:%s", m.Payload, m.Payload)
 		// 	searchResult := searchFunction(term)
@@ -132,7 +140,6 @@ var StartBotCommand = cli.Command{
 				messageText, err := firstHit(searchResult)
 
 				if err == nil {
-					spew.Dump(messageText)
 					b.Send(m.Sender,
 						messageText,
 						&tb.SendOptions{
