@@ -19,3 +19,4 @@ import:
   version: ^0.1.0
 - package: github.com/certifi/gocertifi
   version: ~2018.1.18
+- package: github.com/dukex/mixpanel
