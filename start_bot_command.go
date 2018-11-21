@@ -87,24 +87,69 @@ var StartBotCommand = cli.Command{
 
 				inlineButtons = append(inlineButtons, inlineBtn)
 			}
+			batchSize := 3
+			var batches [][]tb.InlineButton
 
-			return [][]tb.InlineButton{inlineButtons}
+			for batchSize < len(inlineButtons) {
+				inlineButtons, batches = inlineButtons[batchSize:], append(batches, inlineButtons[0:batchSize:batchSize])
+			}
+			batches = append(batches, inlineButtons)
+
+			return batches
+		}
+
+		handleTranslate := func(term string, m *tb.Message, b *tb.Bot) {
+			queryString := fmt.Sprintf("Keyword:%s^5 Value:%s", term, term)
+
+			searchResult, err := searchFunction(queryString)
+			if err != nil {
+				raven.CaptureError(err, map[string]string{"term": term})
+				return
+			}
+
+			buttons := buttons(searchResult.Hits, term)
+
+			messageText := firstHit(searchResult)
+
+			if messageText == "" {
+				mixpanelClient.Track(strconv.Itoa(m.Sender.ID), "Not found", &mixpanel.Event{
+					Properties: map[string]interface{}{
+						"term": term,
+					},
+				})
+				b.Send(m.Chat, "Перевод не найден")
+			} else {
+				mixpanelClient.Track(strconv.Itoa(m.Sender.ID), "Translate", &mixpanel.Event{
+					Properties: map[string]interface{}{
+						"term": term,
+					},
+				})
+				b.Send(m.Chat,
+					messageText,
+					&tb.SendOptions{
+						ParseMode: tb.ModeHTML,
+					},
+					&tb.ReplyMarkup{
+						InlineKeyboard: buttons,
+					})
+			}
 		}
 
 		startHelpHandler := func(m *tb.Message) {
-			responseText := "Вебсайт: http://tili.kg\nКонтакты: @kalys, kalys@osmonov.com"
+			responseText := "Как пользоваться:\n1) отправляем слово боту, получаем перевод.\n2) если бот в группе, то \"/tili слово\"\n\nВебсайт: http://tili.kg\nОбратная связь по боту: @kalys, kalys@osmonov.com"
 			b.Send(m.Sender, responseText)
 		}
 
 		b.Handle("/help", startHelpHandler)
 		b.Handle("/start", startHelpHandler)
 
-		// b.Handle("/translate", func(m *tb.Message) {
-		// 	term := fmt.Sprintf("Keyword:%s^5 Value:%s", m.Payload, m.Payload)
-		// 	searchResult := searchFunction(term)
-		// 	responseText := firstHit(searchResult)
-		// 	b.Send(m.Sender, responseText)
-		// })
+		b.Handle("/tili", func(m *tb.Message) {
+			term := m.Payload
+
+			raven.CapturePanic(func() {
+				handleTranslate(term, m, b)
+			}, nil)
+		})
 
 		b.Handle(tb.OnCallback, func(c *tb.Callback) {
 			raven.CapturePanic(func() {
@@ -170,42 +215,10 @@ var StartBotCommand = cli.Command{
 		})
 
 		b.Handle(tb.OnText, func(m *tb.Message) {
+			term := m.Text
+
 			raven.CapturePanic(func() {
-				term := m.Text
-				queryString := fmt.Sprintf("Keyword:%s^5 Value:%s", term, term)
-
-				searchResult, err := searchFunction(queryString)
-				if err != nil {
-					raven.CaptureError(err, map[string]string{"term": term})
-					return
-				}
-
-				buttons := buttons(searchResult.Hits, term)
-
-				messageText := firstHit(searchResult)
-
-				if messageText == "" {
-					mixpanelClient.Track(strconv.Itoa(m.Sender.ID), "Not found", &mixpanel.Event{
-						Properties: map[string]interface{}{
-							"term": term,
-						},
-					})
-					b.Send(m.Sender, "Перевод не найден")
-				} else {
-					mixpanelClient.Track(strconv.Itoa(m.Sender.ID), "Translate", &mixpanel.Event{
-						Properties: map[string]interface{}{
-							"term": term,
-						},
-					})
-					b.Send(m.Sender,
-						messageText,
-						&tb.SendOptions{
-							ParseMode: tb.ModeHTML,
-						},
-						&tb.ReplyMarkup{
-							InlineKeyboard: buttons,
-						})
-				}
+				handleTranslate(term, m, b)
 			}, nil)
 		})
 
