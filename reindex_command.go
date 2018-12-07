@@ -2,8 +2,8 @@ package main
 
 import (
 	"database/sql"
+
 	"github.com/blevesearch/bleve"
-	// "github.com/davecgh/go-spew/spew"
 	_ "github.com/go-sql-driver/mysql"
 	"gopkg.in/urfave/cli.v2" // imports as package "cli"
 )
@@ -31,27 +31,22 @@ var ReindexCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		type record struct {
 			Type    string
-			Id      string
+			ID      string
 			Keyword string
 			Value   string
 		}
 
 		db, err := sql.Open("mysql", c.String("from-db"))
 		if err != nil {
-			panic(err.Error()) // Just for example purpose. You should use proper error handling instead of panic
+			return err
 		}
 		defer db.Close()
 
 		batchSize := c.Int("batch-size")
 
-		indexMapping, err := buildIndexMapping()
+		index, err := bleve.New(c.String("index-path"), buildIndexMapping())
 		if err != nil {
-			panic(err)
-		}
-
-		index, err := bleve.New(c.String("index-path"), indexMapping)
-		if err != nil {
-			panic(err)
+			return err
 		}
 
 		batch := index.NewBatch()
@@ -61,25 +56,25 @@ var ReindexCommand = cli.Command{
 
 		rows, err := db.Query("select id, keyword, value from dict_kw")
 		if err != nil {
-			panic(err.Error())
+			return err
 		}
 		defer rows.Close()
 
 		for rows.Next() {
-			err := rows.Scan(&p.Id, &p.Keyword, &p.Value)
-			if err != nil {
-				panic(err.Error())
+			if err := rows.Scan(&p.ID, &p.Keyword, &p.Value); err != nil {
+				return err
 			}
 
 			// spew.Dump(p)
 
-			batch.Index(p.Id, p)
+			if err := batch.Index(p.ID, p); err != nil {
+				return err
+			}
 
 			batchCount++
 			if batchCount >= batchSize {
-				err = index.Batch(batch)
-				if err != nil {
-					panic(err)
+				if err := index.Batch(batch); err != nil {
+					return err
 				}
 				batch = index.NewBatch()
 				batchCount = 0
@@ -87,16 +82,11 @@ var ReindexCommand = cli.Command{
 		}
 
 		if batchCount > 0 {
-			err = index.Batch(batch)
-			if err != nil {
-				panic(err)
+			if err := index.Batch(batch); err != nil {
+				return err
 			}
 		}
 
-		err = rows.Err()
-		if err != nil {
-			panic(err.Error())
-		}
-		return nil
+		return rows.Err()
 	},
 }

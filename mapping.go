@@ -6,8 +6,7 @@ import (
 	"github.com/blevesearch/bleve/mapping"
 )
 
-func buildIndexMapping() (mapping.IndexMapping, error) {
-
+func buildIndexMapping() mapping.IndexMapping {
 	// a generic reusable mapping for russian text
 	keywordTextFieldMapping := bleve.NewTextFieldMapping()
 	keywordTextFieldMapping.Analyzer = ru.AnalyzerName
@@ -28,5 +27,5 @@ func buildIndexMapping() (mapping.IndexMapping, error) {
 	indexMapping.TypeField = "Type"
 	indexMapping.DefaultAnalyzer = "ru"
 
-	return indexMapping, nil
+	return indexMapping
 }
