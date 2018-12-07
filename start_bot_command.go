@@ -145,15 +145,17 @@ var StartBotCommand = cli.Command{
 
 func buttons(hits search.DocumentMatchCollection, query string) [][]tb.InlineButton {
 	inlineButtons := make([]tb.InlineButton, len(hits))
-	for _, hit := range hits {
+
+	for index, hit := range hits {
 		uniqueString := strings.Join([]string{hit.ID, query}, ",")
 		inlineBtn := tb.InlineButton{
 			Unique: uniqueString,
 			Text:   hit.Fields["Keyword"].(string),
 		}
 
-		inlineButtons = append(inlineButtons, inlineBtn)
+		inlineButtons[index] = inlineBtn
 	}
+
 	batchSize := 3
 	var batches [][]tb.InlineButton
 
@@ -211,6 +213,7 @@ func handleTranslate(mixpanelClient mixpanel.Mixpanel, index bleve.Index, term s
 			"term": term,
 		},
 	})
+
 	b.Send(m.Chat,
 		messageText,
 		&tb.SendOptions{ParseMode: tb.ModeHTML},
