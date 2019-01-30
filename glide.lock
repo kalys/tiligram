@@ -1,5 +1,5 @@
-hash: 052a865e260e9ad05545d8300b1a31fe62340ff2849bf4d381afb1dc24b6d129
-updated: 2018-11-10T00:01:54.147485+06:00
+hash: 518696682bd8e91e60fe6b6626077013a8017036137d757f9670f733a49cac76
+updated: 2019-01-31T00:04:28.767245+06:00
 imports:
 - name: github.com/armon/go-radix
   version: 1a2de0c21c94309923825da3df33a4381872c795
@@ -67,16 +67,20 @@ imports:
   version: 8991bc29aa16c548c550c7ff78260e27b9ab7c73
   subpackages:
   - spew
+- name: github.com/docker/go-healthcheck
+  version: a4f20681d8a1929b947920b5dfe2d16809d815ca
 - name: github.com/dukex/mixpanel
   version: f8d5594f958e8c61402a0e56e24fc7b1f6e51889
 - name: github.com/edsrzf/mmap-go
   version: 0bce6a6887123b67a60366d2c9fe2dfb74289d2e
+- name: github.com/enbritely/heartbeat-golang
+  version: 4bd515853ae8295348f8dde5a5d5bf6555599020
 - name: github.com/getsentry/raven-go
-  version: 3033899c76deb3fb6570d9c4074d00443aeab88f
+  version: f04e7487e9a6b9d9837d52743fb5f40576c56411
 - name: github.com/glycerine/go-unsnap-stream
   version: 9f0cb55181dd3a0a4c168d3dbc72d4aca4853126
 - name: github.com/go-sql-driver/mysql
-  version: d523deb1b23d913de5bdada721a6071e71283618
+  version: 72cd26f257d44c1114970e19afddcd812016007e
 - name: github.com/golang/protobuf
   version: 655cdfa588ea190e901bc5590e65d5621688847c
   repo: https://github.com/golang/protobuf

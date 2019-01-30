@@ -10,6 +10,7 @@ import (
 	"github.com/blevesearch/bleve/search"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/dukex/mixpanel"
+	"github.com/enbritely/heartbeat-golang"
 	"github.com/getsentry/raven-go"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"gopkg.in/urfave/cli.v2" // imports as package "cli"
@@ -47,6 +48,8 @@ var StartBotCommand = cli.Command{
 		},
 	},
 	Action: func(c *cli.Context) error {
+		go heartbeat.RunHeartbeatService(":10101")
+
 		spew.Dump()
 		if err := raven.SetDSN(c.String("raven-dsn")); err != nil {
 			return err

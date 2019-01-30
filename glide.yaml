@@ -20,3 +20,6 @@ import:
 - package: github.com/certifi/gocertifi
   version: ~2018.1.18
 - package: github.com/dukex/mixpanel
+- package: github.com/docker/go-healthcheck
+  version: ^0.1.0
+- package: github.com/enbritely/heartbeat-golang
