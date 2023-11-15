@@ -18,6 +18,7 @@
 package mergeplan
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"sort"
@@ -115,13 +116,32 @@ func (o *MergePlanOptions) RaiseToFloorSegmentSize(s int64) int64 {
 	return o.FloorSegmentSize
 }
 
-// Suggested default options.
+// MaxSegmentSizeLimit represents the maximum size of a segment,
+// this limit comes with hit-1 optimisation/max encoding limit uint31.
+const MaxSegmentSizeLimit = 1<<31 - 1
+
+// ErrMaxSegmentSizeTooLarge is returned when the size of the segment
+// exceeds the MaxSegmentSizeLimit
+var ErrMaxSegmentSizeTooLarge = errors.New("MaxSegmentSize exceeds the size limit")
+
+// DefaultMergePlanOptions suggests the default options.
 var DefaultMergePlanOptions = MergePlanOptions{
 	MaxSegmentsPerTier:   10,
 	MaxSegmentSize:       5000000,
 	TierGrowth:           10.0,
 	SegmentsPerMergeTask: 10,
 	FloorSegmentSize:     2000,
+	ReclaimDeletesWeight: 2.0,
+}
+
+// SingleSegmentMergePlanOptions helps in creating a
+// single segment index.
+var SingleSegmentMergePlanOptions = MergePlanOptions{
+	MaxSegmentsPerTier:   1,
+	MaxSegmentSize:       1 << 30,
+	TierGrowth:           1.0,
+	SegmentsPerMergeTask: 10,
+	FloorSegmentSize:     1 << 30,
 	ReclaimDeletesWeight: 2.0,
 }
 
@@ -164,7 +184,7 @@ func plan(segmentsIn []Segment, o *MergePlanOptions) (*MergePlan, error) {
 		calcBudget = CalcBudget
 	}
 
-	budgetNumSegments := CalcBudget(eligiblesLiveSize, minLiveSize, o)
+	budgetNumSegments := calcBudget(eligiblesLiveSize, minLiveSize, o)
 
 	scoreSegments := o.ScoreSegments
 	if scoreSegments == nil {
@@ -208,14 +228,14 @@ func plan(segmentsIn []Segment, o *MergePlanOptions) (*MergePlan, error) {
 			if len(roster) > 0 {
 				rosterScore := scoreSegments(roster, o)
 
-				if len(bestRoster) <= 0 || rosterScore < bestRosterScore {
+				if len(bestRoster) == 0 || rosterScore < bestRosterScore {
 					bestRoster = roster
 					bestRosterScore = rosterScore
 				}
 			}
 		}
 
-		if len(bestRoster) <= 0 {
+		if len(bestRoster) == 0 {
 			return rv, nil
 		}
 
@@ -366,4 +386,12 @@ func ToBarChart(prefix string, barMax int, segments []Segment, plan *MergePlan) 
 	}
 
 	return strings.Join(rv, "\n")
+}
+
+// ValidateMergePlannerOptions validates the merge planner options
+func ValidateMergePlannerOptions(options *MergePlanOptions) error {
+	if options.MaxSegmentSize > MaxSegmentSizeLimit {
+		return ErrMaxSegmentSizeTooLarge
+	}
+	return nil
 }
