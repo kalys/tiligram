@@ -79,63 +79,15 @@ var StartBotCommand = cli.Command{
 
 		b.Handle(tb.OnCallback, func(c *tb.Callback) {
 			raven.CapturePanic(func() {
-				// on inline button pressed (callback!)
-				splittedStrings := strings.SplitN(c.Data, ",", 2)
-				wordID := strings.TrimSpace(splittedStrings[0])
-				term := splittedStrings[1]
-
-				query := bleve.NewDocIDQuery([]string{wordID})
-				searchRequest := bleve.NewSearchRequest(query)
-				searchRequest.Fields = []string{"Keyword", "Value"}
-				docIDSearchResult, err := index.Search(searchRequest)
-				if err != nil {
-					raven.CaptureError(err, map[string]string{"term": term})
-					b.Respond(c, &tb.CallbackResponse{
-						CallbackID: c.ID,
-						Text:       "Произошла ошибка. Попробуйте выбрать другой перевод",
-					})
-					return
-				}
-
-				searchResult, err := searchFunction(index, term)
-				if err != nil {
-					raven.CaptureError(err, map[string]string{"term": term})
-					b.Respond(c, &tb.CallbackResponse{
-						CallbackID: c.ID,
-						Text:       "Произошла ошибка. Попробуйте ввести другое ключевое слово",
-					})
-					return
-				}
-
-				buttons := buttons(searchResult.Hits, term)
-				messageText := firstHit(docIDSearchResult)
-				if messageText == "" {
-					b.Respond(c, &tb.CallbackResponse{
-						CallbackID: c.ID,
-						Text:       "Произошла ошибка. Попробуйте выбрать другой перевод",
-					})
-					return
-				}
-
-				selectedKeyword := docIDSearchResult.Hits[0].Fields["Keyword"].(string)
-				mixpanelClient.Track(strconv.Itoa(c.Sender.ID), "Selected", &mixpanel.Event{
-					Properties: map[string]interface{}{
-						"keyword": selectedKeyword,
-					},
-				})
-				b.Edit(c.Message,
-					messageText,
-					&tb.SendOptions{ParseMode: tb.ModeHTML},
-					&tb.ReplyMarkup{InlineKeyboard: buttons})
-
-				// always respond!
-				b.Respond(c, &tb.CallbackResponse{
-					CallbackID: c.ID,
-				})
+				handleCallback(b, c, index, mixpanelClient)
 			}, nil)
 		})
 
 		b.Handle(tb.OnText, func(m *tb.Message) {
+			if m.Chat.Type != tb.ChatPrivate {
+				return
+			}
+
 			term := m.Text
 			raven.CapturePanic(func() { handleTranslate(mixpanelClient, index, term, m, b) }, nil)
 		})
@@ -221,4 +173,60 @@ func handleTranslate(mixpanelClient mixpanel.Mixpanel, index bleve.Index, term s
 		messageText,
 		&tb.SendOptions{ParseMode: tb.ModeHTML},
 		&tb.ReplyMarkup{InlineKeyboard: buttons})
+}
+
+func handleCallback(b *tb.Bot, c *tb.Callback, index bleve.Index, mixpanelClient mixpanel.Mixpanel) {
+	// on inline button pressed (callback!)
+	splittedStrings := strings.SplitN(c.Data, ",", 2)
+	wordID := strings.TrimSpace(splittedStrings[0])
+	term := splittedStrings[1]
+
+	query := bleve.NewDocIDQuery([]string{wordID})
+	searchRequest := bleve.NewSearchRequest(query)
+	searchRequest.Fields = []string{"Keyword", "Value"}
+	docIDSearchResult, err := index.Search(searchRequest)
+	if err != nil {
+		raven.CaptureError(err, map[string]string{"term": term})
+		b.Respond(c, &tb.CallbackResponse{
+			CallbackID: c.ID,
+			Text:       "Произошла ошибка. Попробуйте выбрать другой перевод",
+		})
+		return
+	}
+
+	searchResult, err := searchFunction(index, term)
+	if err != nil {
+		raven.CaptureError(err, map[string]string{"term": term})
+		b.Respond(c, &tb.CallbackResponse{
+			CallbackID: c.ID,
+			Text:       "Произошла ошибка. Попробуйте ввести другое ключевое слово",
+		})
+		return
+	}
+
+	buttons := buttons(searchResult.Hits, term)
+	messageText := firstHit(docIDSearchResult)
+	if messageText == "" {
+		b.Respond(c, &tb.CallbackResponse{
+			CallbackID: c.ID,
+			Text:       "Произошла ошибка. Попробуйте выбрать другой перевод",
+		})
+		return
+	}
+
+	selectedKeyword := docIDSearchResult.Hits[0].Fields["Keyword"].(string)
+	mixpanelClient.Track(strconv.Itoa(c.Sender.ID), "Selected", &mixpanel.Event{
+		Properties: map[string]interface{}{
+			"keyword": selectedKeyword,
+		},
+	})
+	b.Edit(c.Message,
+		messageText,
+		&tb.SendOptions{ParseMode: tb.ModeHTML},
+		&tb.ReplyMarkup{InlineKeyboard: buttons})
+
+	// always respond!
+	b.Respond(c, &tb.CallbackResponse{
+		CallbackID: c.ID,
+	})
 }
