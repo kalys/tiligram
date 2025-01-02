@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  bot:
+    image: kalys/tiligram:latest
+    restart: always
+    env_file:
+      - .env

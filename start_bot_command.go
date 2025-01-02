@@ -140,8 +140,24 @@ func firstHit(sr *bleve.SearchResult) string {
 	return strings.Join([]string{hitKeyword, hitValue}, "\n")
 }
 
+func escapeSpecialChars(term string) string {
+	// List of special characters to escape
+	specialChars := "+-=&|><!(){}[]^\"~*?:\\/"
+	var escaped strings.Builder
+
+	for _, char := range term {
+		if strings.ContainsRune(specialChars, char) {
+			escaped.WriteRune('\\')
+		}
+		escaped.WriteRune(char)
+	}
+
+	return escaped.String()
+}
+
 func handleTranslate(mixpanelClient mixpanel.Mixpanel, index bleve.Index, term string, m *tb.Message, b *tb.Bot) {
-	queryString := fmt.Sprintf("Keyword:%s^5 Value:%s", term, term)
+	escapedTerm := escapeSpecialChars(term)
+	queryString := fmt.Sprintf("Keyword:%s^5 Value:%s", escapedTerm, escapedTerm)
 
 	searchResult, err := searchFunction(index, queryString)
 	if err != nil {
