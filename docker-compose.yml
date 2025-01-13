@@ -1,8 +1,9 @@
-version: '3'
-
 services:
   bot:
+    command: './main start-bot --bot-token=${BOT_TOKEN} --raven-dsn=${RAVEN_DSN} --mixpanel-token=${MIXPANEL_TOKEN}'
     image: kalys/tiligram:latest
     restart: always
     env_file:
       - .env
+    volumes:
+      - ./bleve.search:/root/bleve.search
