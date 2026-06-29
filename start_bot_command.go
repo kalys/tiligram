@@ -66,7 +66,7 @@ var StartBotCommand = cli.Command{
 		}
 
 		analytics := mixpanel.New(c.String("mixpanel-token"), "")
-		bot.NewBotHandler(index, analytics, b).RegisterHandlers()
+		bot.NewBotHandler(index, analytics, b).RegisterHandlers(b)
 
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, os.Interrupt, syscall.SIGTERM)

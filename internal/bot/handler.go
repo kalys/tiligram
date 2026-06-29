@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/blevesearch/bleve"
 	"github.com/dukex/mixpanel"
 	"github.com/getsentry/raven-go"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -19,29 +18,39 @@ const responseText = `Как пользоваться:
 Вебсайт: http://tili.kg
 Обратная связь по боту: @kalys, kalys@osmonov.com`
 
+type Analytics interface {
+	Track(distinctID, eventName string, e *mixpanel.Event) error
+}
+
+type Sender interface {
+	Send(to tb.Recipient, what interface{}, options ...interface{}) (*tb.Message, error)
+	Edit(msg tb.Editable, what interface{}, options ...interface{}) (*tb.Message, error)
+	Respond(c *tb.Callback, resp ...*tb.CallbackResponse) error
+}
+
 type BotHandler struct {
-	index     bleve.Index
-	analytics mixpanel.Mixpanel
-	bot       *tb.Bot
+	index     Searcher
+	analytics Analytics
+	sender    Sender
 }
 
-func NewBotHandler(index bleve.Index, analytics mixpanel.Mixpanel, bot *tb.Bot) *BotHandler {
-	return &BotHandler{index: index, analytics: analytics, bot: bot}
+func NewBotHandler(index Searcher, analytics Analytics, sender Sender) *BotHandler {
+	return &BotHandler{index: index, analytics: analytics, sender: sender}
 }
 
-func (h *BotHandler) RegisterHandlers() {
-	h.bot.Handle("/help", func(m *tb.Message) { h.bot.Send(m.Sender, responseText) })
-	h.bot.Handle("/start", func(m *tb.Message) { h.bot.Send(m.Sender, responseText) })
+func (h *BotHandler) RegisterHandlers(b *tb.Bot) {
+	b.Handle("/help", func(m *tb.Message) { h.sender.Send(m.Sender, responseText) })
+	b.Handle("/start", func(m *tb.Message) { h.sender.Send(m.Sender, responseText) })
 
-	h.bot.Handle("/tili", func(m *tb.Message) {
+	b.Handle("/tili", func(m *tb.Message) {
 		raven.CapturePanic(func() { h.handleTranslate(m.Payload, m) }, nil)
 	})
 
-	h.bot.Handle(tb.OnCallback, func(c *tb.Callback) {
+	b.Handle(tb.OnCallback, func(c *tb.Callback) {
 		raven.CapturePanic(func() { h.handleCallback(c) }, nil)
 	})
 
-	h.bot.Handle(tb.OnText, func(m *tb.Message) {
+	b.Handle(tb.OnText, func(m *tb.Message) {
 		if m.Chat.Type != tb.ChatPrivate {
 			return
 		}
@@ -51,7 +60,7 @@ func (h *BotHandler) RegisterHandlers() {
 
 func (h *BotHandler) handleTranslate(term string, m *tb.Message) {
 	if len([]rune(term)) > maxTermLength {
-		h.bot.Send(m.Chat, "Запрос слишком длинный")
+		h.sender.Send(m.Chat, "Запрос слишком длинный")
 		return
 	}
 
@@ -67,7 +76,7 @@ func (h *BotHandler) handleTranslate(term string, m *tb.Message) {
 		h.analytics.Track(strconv.Itoa(m.Sender.ID), "Not found", &mixpanel.Event{
 			Properties: map[string]interface{}{"term": term},
 		})
-		h.bot.Send(m.Chat, "Перевод не найден")
+		h.sender.Send(m.Chat, "Перевод не найден")
 		return
 	}
 
@@ -75,14 +84,14 @@ func (h *BotHandler) handleTranslate(term string, m *tb.Message) {
 		Properties: map[string]interface{}{"term": term},
 	})
 
-	h.bot.Send(m.Chat, messageText,
+	h.sender.Send(m.Chat, messageText,
 		&tb.SendOptions{ParseMode: tb.ModeHTML},
 		&tb.ReplyMarkup{InlineKeyboard: buttons(searchResult.Hits, term)})
 }
 
 func (h *BotHandler) handleCallback(c *tb.Callback) {
 	if len([]rune(c.Data)) > maxTermLength {
-		h.bot.Respond(c, &tb.CallbackResponse{
+		h.sender.Respond(c, &tb.CallbackResponse{
 			CallbackID: c.ID,
 			Text:       "Запрос слишком длинный",
 		})
@@ -96,7 +105,7 @@ func (h *BotHandler) handleCallback(c *tb.Callback) {
 	docResult, err := searchByDocID(h.index, wordID)
 	if err != nil {
 		raven.CaptureError(err, map[string]string{"term": term})
-		h.bot.Respond(c, &tb.CallbackResponse{
+		h.sender.Respond(c, &tb.CallbackResponse{
 			CallbackID: c.ID,
 			Text:       "Произошла ошибка. Попробуйте выбрать другой перевод",
 		})
@@ -106,7 +115,7 @@ func (h *BotHandler) handleCallback(c *tb.Callback) {
 	termResult, err := searchByTerm(h.index, buildBoostedQuery(term))
 	if err != nil {
 		raven.CaptureError(err, map[string]string{"term": term})
-		h.bot.Respond(c, &tb.CallbackResponse{
+		h.sender.Respond(c, &tb.CallbackResponse{
 			CallbackID: c.ID,
 			Text:       "Произошла ошибка. Попробуйте ввести другое ключевое слово",
 		})
@@ -115,7 +124,7 @@ func (h *BotHandler) handleCallback(c *tb.Callback) {
 
 	messageText := firstHit(docResult)
 	if messageText == "" {
-		h.bot.Respond(c, &tb.CallbackResponse{
+		h.sender.Respond(c, &tb.CallbackResponse{
 			CallbackID: c.ID,
 			Text:       "Произошла ошибка. Попробуйте выбрать другой перевод",
 		})
@@ -125,9 +134,9 @@ func (h *BotHandler) handleCallback(c *tb.Callback) {
 	h.analytics.Track(strconv.Itoa(c.Sender.ID), "Selected", &mixpanel.Event{
 		Properties: map[string]interface{}{"keyword": docResult.Hits[0].Fields["Keyword"].(string)},
 	})
-	h.bot.Edit(c.Message, messageText,
+	h.sender.Edit(c.Message, messageText,
 		&tb.SendOptions{ParseMode: tb.ModeHTML},
 		&tb.ReplyMarkup{InlineKeyboard: buttons(termResult.Hits, term)})
 
-	h.bot.Respond(c, &tb.CallbackResponse{CallbackID: c.ID})
+	h.sender.Respond(c, &tb.CallbackResponse{CallbackID: c.ID})
 }

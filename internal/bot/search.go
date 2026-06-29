@@ -7,13 +7,17 @@ import (
 	"github.com/blevesearch/bleve"
 )
 
-func searchByTerm(index bleve.Index, term string) (*bleve.SearchResult, error) {
+type Searcher interface {
+	Search(req *bleve.SearchRequest) (*bleve.SearchResult, error)
+}
+
+func searchByTerm(index Searcher, term string) (*bleve.SearchResult, error) {
 	req := bleve.NewSearchRequest(bleve.NewQueryStringQuery(term))
 	req.Fields = []string{"Keyword", "Value"}
 	return index.Search(req)
 }
 
-func searchByDocID(index bleve.Index, id string) (*bleve.SearchResult, error) {
+func searchByDocID(index Searcher, id string) (*bleve.SearchResult, error) {
 	req := bleve.NewSearchRequest(bleve.NewDocIDQuery([]string{id}))
 	req.Fields = []string{"Keyword", "Value"}
 	return index.Search(req)
