@@ -4,7 +4,6 @@ go 1.21.0
 
 require (
 	github.com/blevesearch/bleve v1.0.14
-	github.com/davecgh/go-spew v1.1.1
 	github.com/dukex/mixpanel v0.0.0-20180925151559-f8d5594f958e
 	github.com/enbritely/heartbeat-golang v0.0.0-20151130140632-4bd515853ae8
 	github.com/getsentry/raven-go v0.2.0

@@ -2,19 +2,23 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/search"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/dukex/mixpanel"
 	"github.com/enbritely/heartbeat-golang"
 	"github.com/getsentry/raven-go"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"gopkg.in/urfave/cli.v2" // imports as package "cli"
 )
+
+const maxTermLength = 200
 
 const responseText = `Как пользоваться:
 1) отправляем слово боту, получаем перевод.
@@ -50,7 +54,6 @@ var StartBotCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		go heartbeat.RunHeartbeatService(":10101")
 
-		spew.Dump()
 		if err := raven.SetDSN(c.String("raven-dsn")); err != nil {
 			return err
 		}
@@ -60,6 +63,7 @@ var StartBotCommand = cli.Command{
 		if err != nil {
 			return err
 		}
+		defer index.Close()
 
 		b, err := tb.NewBot(tb.Settings{
 			Token:  c.String("bot-token"),
@@ -91,6 +95,13 @@ var StartBotCommand = cli.Command{
 			term := m.Text
 			raven.CapturePanic(func() { handleTranslate(mixpanelClient, index, term, m, b) }, nil)
 		})
+
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+		go func() {
+			<-quit
+			b.Stop()
+		}()
 
 		b.Start()
 
@@ -156,6 +167,11 @@ func escapeSpecialChars(term string) string {
 }
 
 func handleTranslate(mixpanelClient mixpanel.Mixpanel, index bleve.Index, term string, m *tb.Message, b *tb.Bot) {
+	if len([]rune(term)) > maxTermLength {
+		b.Send(m.Chat, "Запрос слишком длинный")
+		return
+	}
+
 	escapedTerm := escapeSpecialChars(term)
 	queryString := fmt.Sprintf("Keyword:%s^5 Value:%s", escapedTerm, escapedTerm)
 
@@ -192,6 +208,14 @@ func handleTranslate(mixpanelClient mixpanel.Mixpanel, index bleve.Index, term s
 }
 
 func handleCallback(b *tb.Bot, c *tb.Callback, index bleve.Index, mixpanelClient mixpanel.Mixpanel) {
+	if len([]rune(c.Data)) > maxTermLength {
+		b.Respond(c, &tb.CallbackResponse{
+			CallbackID: c.ID,
+			Text:       "Запрос слишком длинный",
+		})
+		return
+	}
+
 	// on inline button pressed (callback!)
 	splittedStrings := strings.SplitN(c.Data, ",", 2)
 	wordID := strings.TrimSpace(splittedStrings[0])

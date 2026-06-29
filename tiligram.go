@@ -10,7 +10,6 @@ func main() {
 	app := &cli.App{
 		Commands: []cli.Command{
 			StartBotCommand,
-			ImportDBCommand,
 			ReindexCommand,
 		},
 	}

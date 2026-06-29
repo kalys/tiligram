@@ -20,7 +20,6 @@ var ReindexCommand = cli.Command{
 		&cli.StringFlag{
 			Name:  "from-db",
 			Usage: "MySQL database URI string",
-			Value: "root@/tili",
 		},
 		&cli.StringFlag{
 			Name:  "index-path",
@@ -64,8 +63,6 @@ var ReindexCommand = cli.Command{
 			if err := rows.Scan(&p.ID, &p.Keyword, &p.Value); err != nil {
 				return err
 			}
-
-			// spew.Dump(p)
 
 			if err := batch.Index(p.ID, p); err != nil {
 				return err
