@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/dukex/mixpanel"
-	"github.com/getsentry/raven-go"
-	tb "gopkg.in/tucnak/telebot.v2"
+	"github.com/getsentry/sentry-go"
+	tb "gopkg.in/telebot.v3"
 )
 
 const maxTermLength = 200
@@ -39,23 +39,41 @@ func NewBotHandler(index Searcher, analytics Analytics, sender Sender) *BotHandl
 }
 
 func (h *BotHandler) RegisterHandlers(b *tb.Bot) {
-	b.Handle("/help", func(m *tb.Message) { h.sender.Send(m.Sender, responseText) })
-	b.Handle("/start", func(m *tb.Message) { h.sender.Send(m.Sender, responseText) })
-
-	b.Handle("/tili", func(m *tb.Message) {
-		raven.CapturePanic(func() { h.handleTranslate(m.Payload, m) }, nil)
+	b.Handle("/help", func(c tb.Context) error {
+		_, err := h.sender.Send(c.Sender(), responseText)
+		return err
+	})
+	b.Handle("/start", func(c tb.Context) error {
+		_, err := h.sender.Send(c.Sender(), responseText)
+		return err
 	})
 
-	b.Handle(tb.OnCallback, func(c *tb.Callback) {
-		raven.CapturePanic(func() { h.handleCallback(c) }, nil)
+	b.Handle("/tili", func(c tb.Context) error {
+		recoverAndCapture(func() { h.handleTranslate(c.Message().Payload, c.Message()) })
+		return nil
 	})
 
-	b.Handle(tb.OnText, func(m *tb.Message) {
-		if m.Chat.Type != tb.ChatPrivate {
-			return
+	b.Handle(tb.OnCallback, func(c tb.Context) error {
+		recoverAndCapture(func() { h.handleCallback(c.Callback()) })
+		return nil
+	})
+
+	b.Handle(tb.OnText, func(c tb.Context) error {
+		if c.Message().Chat.Type != tb.ChatPrivate {
+			return nil
 		}
-		raven.CapturePanic(func() { h.handleTranslate(m.Text, m) }, nil)
+		recoverAndCapture(func() { h.handleTranslate(c.Message().Text, c.Message()) })
+		return nil
 	})
+}
+
+func recoverAndCapture(fn func()) {
+	defer func() {
+		if r := recover(); r != nil {
+			sentry.CurrentHub().Recover(r)
+		}
+	}()
+	fn()
 }
 
 func (h *BotHandler) handleTranslate(term string, m *tb.Message) {
@@ -66,21 +84,24 @@ func (h *BotHandler) handleTranslate(term string, m *tb.Message) {
 
 	searchResult, err := searchByTerm(h.index, buildBoostedQuery(term))
 	if err != nil {
-		raven.CaptureError(err, map[string]string{"term": term})
+		sentry.WithScope(func(scope *sentry.Scope) {
+			scope.SetTag("term", term)
+			sentry.CaptureException(err)
+		})
 		return
 	}
 
 	messageText := firstHit(searchResult)
 
 	if messageText == "" {
-		h.analytics.Track(strconv.Itoa(m.Sender.ID), "Not found", &mixpanel.Event{
+		h.analytics.Track(strconv.FormatInt(m.Sender.ID, 10), "Not found", &mixpanel.Event{
 			Properties: map[string]interface{}{"term": term},
 		})
 		h.sender.Send(m.Chat, "Перевод не найден")
 		return
 	}
 
-	h.analytics.Track(strconv.Itoa(m.Sender.ID), "Translate", &mixpanel.Event{
+	h.analytics.Track(strconv.FormatInt(m.Sender.ID, 10), "Translate", &mixpanel.Event{
 		Properties: map[string]interface{}{"term": term},
 	})
 
@@ -104,7 +125,7 @@ func (h *BotHandler) handleCallback(c *tb.Callback) {
 
 	docResult, err := searchByDocID(h.index, wordID)
 	if err != nil {
-		raven.CaptureError(err, map[string]string{"term": term})
+		sentry.CaptureException(err)
 		h.sender.Respond(c, &tb.CallbackResponse{
 			CallbackID: c.ID,
 			Text:       "Произошла ошибка. Попробуйте выбрать другой перевод",
@@ -114,7 +135,7 @@ func (h *BotHandler) handleCallback(c *tb.Callback) {
 
 	termResult, err := searchByTerm(h.index, buildBoostedQuery(term))
 	if err != nil {
-		raven.CaptureError(err, map[string]string{"term": term})
+		sentry.CaptureException(err)
 		h.sender.Respond(c, &tb.CallbackResponse{
 			CallbackID: c.ID,
 			Text:       "Произошла ошибка. Попробуйте ввести другое ключевое слово",
@@ -131,7 +152,7 @@ func (h *BotHandler) handleCallback(c *tb.Callback) {
 		return
 	}
 
-	h.analytics.Track(strconv.Itoa(c.Sender.ID), "Selected", &mixpanel.Event{
+	h.analytics.Track(strconv.FormatInt(c.Sender.ID, 10), "Selected", &mixpanel.Event{
 		Properties: map[string]interface{}{"keyword": docResult.Hits[0].Fields["Keyword"].(string)},
 	})
 	h.sender.Edit(c.Message, messageText,

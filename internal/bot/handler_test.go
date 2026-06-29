@@ -8,7 +8,7 @@ import (
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/search"
 	"github.com/dukex/mixpanel"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/telebot.v3"
 )
 
 // -- mocks --
@@ -80,14 +80,14 @@ func newHandler(s *mockSearcher, a *mockAnalytics, sender *mockSender) *BotHandl
 	return NewBotHandler(s, a, sender)
 }
 
-func testMessage(userID int) *tb.Message {
+func testMessage(userID int64) *tb.Message {
 	return &tb.Message{
 		Chat:   &tb.Chat{ID: 1, Type: tb.ChatPrivate},
 		Sender: &tb.User{ID: userID},
 	}
 }
 
-func testCallback(data string, userID int) *tb.Callback {
+func testCallback(data string, userID int64) *tb.Callback {
 	return &tb.Callback{
 		ID:     "cb1",
 		Data:   data,

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -8,11 +9,10 @@ import (
 
 	"github.com/blevesearch/bleve"
 	"github.com/dukex/mixpanel"
-	"github.com/enbritely/heartbeat-golang"
-	"github.com/getsentry/raven-go"
+	"github.com/getsentry/sentry-go"
 	"github.com/kalys/tiligram/internal/bot"
-	tb "gopkg.in/tucnak/telebot.v2"
-	"gopkg.in/urfave/cli.v2"
+	"github.com/urfave/cli/v2"
+	tb "gopkg.in/telebot.v3"
 )
 
 var StartBotCommand = cli.Command{
@@ -29,9 +29,8 @@ var StartBotCommand = cli.Command{
 			Value: "bleve.search",
 		},
 		&cli.StringFlag{
-			Name:  "raven-dsn",
-			Usage: "DSN for sentry",
-			Value: "some-dsn",
+			Name:  "sentry-dsn",
+			Usage: "DSN for Sentry error tracking",
 		},
 		&cli.StringFlag{
 			Name:  "mixpanel-token",
@@ -45,11 +44,17 @@ var StartBotCommand = cli.Command{
 		},
 	},
 	Action: func(c *cli.Context) error {
-		go heartbeat.RunHeartbeatService(c.String("heartbeat-addr"))
+		go func() {
+			http.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})
+			http.ListenAndServe(c.String("heartbeat-addr"), nil)
+		}()
 
-		if err := raven.SetDSN(c.String("raven-dsn")); err != nil {
+		if err := sentry.Init(sentry.ClientOptions{Dsn: c.String("sentry-dsn")}); err != nil {
 			return err
 		}
+		defer sentry.Flush(2 * time.Second)
 
 		index, err := bleve.Open(c.String("index-path"))
 		if err != nil {

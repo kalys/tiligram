@@ -1,15 +1,14 @@
 module github.com/kalys/tiligram
 
-go 1.21.0
+go 1.25.0
 
 require (
 	github.com/blevesearch/bleve v1.0.14
 	github.com/dukex/mixpanel v0.0.0-20180925151559-f8d5594f958e
-	github.com/enbritely/heartbeat-golang v0.0.0-20151130140632-4bd515853ae8
-	github.com/getsentry/raven-go v0.2.0
+	github.com/getsentry/sentry-go v0.47.0
 	github.com/go-sql-driver/mysql v1.4.1
-	gopkg.in/tucnak/telebot.v2 v2.0.1-0.20181011115005-2adea7c8be71
-	gopkg.in/urfave/cli.v2 v2.0.0-20170811014203-cfb38830724c
+	github.com/urfave/cli/v2 v2.27.7
+	gopkg.in/telebot.v3 v3.3.8
 )
 
 require (
@@ -23,23 +22,22 @@ require (
 	github.com/blevesearch/zap/v13 v13.0.6 // indirect
 	github.com/blevesearch/zap/v14 v14.0.5 // indirect
 	github.com/blevesearch/zap/v15 v15.0.3 // indirect
-	github.com/certifi/gocertifi v0.0.0-20180118203423-deb3ae2ef261 // indirect
 	github.com/couchbase/vellum v1.0.2 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/glycerine/go-unsnap-stream v0.0.0-20181221182339-f9677308dec2 // indirect
-	github.com/golang/protobuf v1.5.0 // indirect
-	github.com/golang/snappy v0.0.1 // indirect
-	github.com/google/go-cmp v0.5.6 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/snappy v0.0.3 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/philhofer/fwd v1.0.0 // indirect
-	github.com/pkg/errors v0.8.1-0.20181023235946-059132a15dd0 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/steveyen/gtreap v0.1.0 // indirect
-	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/tinylib/msgp v1.1.0 // indirect
 	github.com/willf/bitset v1.1.10 // indirect
+	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	google.golang.org/appengine v1.3.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 )

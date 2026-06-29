@@ -1,16 +1,16 @@
-// vim:tabstop=4
 package main
 
 import (
-	"gopkg.in/urfave/cli.v2" // imports as package "cli"
 	"os"
+
+	"github.com/urfave/cli/v2"
 )
 
 func main() {
 	app := &cli.App{
-		Commands: []cli.Command{
-			StartBotCommand,
-			ReindexCommand,
+		Commands: []*cli.Command{
+			&StartBotCommand,
+			&ReindexCommand,
 		},
 	}
 

@@ -5,7 +5,7 @@ import (
 
 	"github.com/blevesearch/bleve"
 	_ "github.com/go-sql-driver/mysql"
-	"gopkg.in/urfave/cli.v2" // imports as package "cli"
+	"github.com/urfave/cli/v2"
 )
 
 var ReindexCommand = cli.Command{

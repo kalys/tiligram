@@ -1,6 +1,6 @@
 services:
   bot:
-    command: './main start-bot --bot-token=${BOT_TOKEN} --raven-dsn=${RAVEN_DSN} --mixpanel-token=${MIXPANEL_TOKEN}'
+    command: './main start-bot --bot-token=${BOT_TOKEN} --sentry-dsn=${SENTRY_DSN} --mixpanel-token=${MIXPANEL_TOKEN}'
     image: kalys/tiligram:latest
     restart: always
     env_file:

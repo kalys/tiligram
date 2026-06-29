@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/blevesearch/bleve/search"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/telebot.v3"
 )
 
 func buttons(hits search.DocumentMatchCollection, query string) [][]tb.InlineButton {
