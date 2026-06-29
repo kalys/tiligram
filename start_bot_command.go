@@ -50,9 +50,14 @@ var StartBotCommand = cli.Command{
 			Usage: "Mixpanel token",
 			Value: "some-token",
 		},
+		&cli.StringFlag{
+			Name:  "heartbeat-addr",
+			Usage: "Address for the heartbeat health-check listener",
+			Value: ":10101",
+		},
 	},
 	Action: func(c *cli.Context) error {
-		go heartbeat.RunHeartbeatService(":10101")
+		go heartbeat.RunHeartbeatService(c.String("heartbeat-addr"))
 
 		if err := raven.SetDSN(c.String("raven-dsn")); err != nil {
 			return err
@@ -151,8 +156,12 @@ func firstHit(sr *bleve.SearchResult) string {
 	return strings.Join([]string{hitKeyword, hitValue}, "\n")
 }
 
+func buildBoostedQuery(term string) string {
+	escaped := escapeSpecialChars(term)
+	return fmt.Sprintf("Keyword:%s^5 Value:%s", escaped, escaped)
+}
+
 func escapeSpecialChars(term string) string {
-	// List of special characters to escape
 	specialChars := "+-=&|><!(){}[]^\"~*?:\\/"
 	var escaped strings.Builder
 
@@ -172,10 +181,7 @@ func handleTranslate(mixpanelClient mixpanel.Mixpanel, index bleve.Index, term s
 		return
 	}
 
-	escapedTerm := escapeSpecialChars(term)
-	queryString := fmt.Sprintf("Keyword:%s^5 Value:%s", escapedTerm, escapedTerm)
-
-	searchResult, err := searchFunction(index, queryString)
+	searchResult, err := searchFunction(index, buildBoostedQuery(term))
 	if err != nil {
 		raven.CaptureError(err, map[string]string{"term": term})
 		return
@@ -234,7 +240,7 @@ func handleCallback(b *tb.Bot, c *tb.Callback, index bleve.Index, mixpanelClient
 		return
 	}
 
-	searchResult, err := searchFunction(index, term)
+	searchResult, err := searchFunction(index, buildBoostedQuery(term))
 	if err != nil {
 		raven.CaptureError(err, map[string]string{"term": term})
 		b.Respond(c, &tb.CallbackResponse{
