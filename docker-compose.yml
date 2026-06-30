@@ -7,3 +7,14 @@ services:
       - .env
     volumes:
       - ./bleve.search:/root/bleve.search
+
+  api:
+    command: './main start-api --sentry-dsn=${SENTRY_DSN} --cors-origin=${CORS_ORIGIN}'
+    image: kalys/tiligram:latest
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./bleve.search:/root/bleve.search
