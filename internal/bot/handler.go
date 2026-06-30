@@ -6,6 +6,7 @@ import (
 
 	"github.com/dukex/mixpanel"
 	"github.com/getsentry/sentry-go"
+	"github.com/kalys/tiligram/internal/search"
 	tb "gopkg.in/telebot.v3"
 )
 
@@ -29,12 +30,12 @@ type Sender interface {
 }
 
 type BotHandler struct {
-	index     Searcher
+	index     search.Searcher
 	analytics Analytics
 	sender    Sender
 }
 
-func NewBotHandler(index Searcher, analytics Analytics, sender Sender) *BotHandler {
+func NewBotHandler(index search.Searcher, analytics Analytics, sender Sender) *BotHandler {
 	return &BotHandler{index: index, analytics: analytics, sender: sender}
 }
 
@@ -82,7 +83,7 @@ func (h *BotHandler) handleTranslate(term string, m *tb.Message) {
 		return
 	}
 
-	searchResult, err := searchByTerm(h.index, buildBoostedQuery(term))
+	searchResult, err := search.ByTerm(h.index, search.BuildBoostedQuery(term))
 	if err != nil {
 		sentry.WithScope(func(scope *sentry.Scope) {
 			scope.SetTag("term", term)
@@ -123,7 +124,7 @@ func (h *BotHandler) handleCallback(c *tb.Callback) {
 	wordID := strings.TrimSpace(parts[0])
 	term := parts[1]
 
-	docResult, err := searchByDocID(h.index, wordID)
+	docResult, err := search.ByDocID(h.index, wordID)
 	if err != nil {
 		sentry.CaptureException(err)
 		h.sender.Respond(c, &tb.CallbackResponse{
@@ -133,7 +134,7 @@ func (h *BotHandler) handleCallback(c *tb.Callback) {
 		return
 	}
 
-	termResult, err := searchByTerm(h.index, buildBoostedQuery(term))
+	termResult, err := search.ByTerm(h.index, search.BuildBoostedQuery(term))
 	if err != nil {
 		sentry.CaptureException(err)
 		h.sender.Respond(c, &tb.CallbackResponse{
