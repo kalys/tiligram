@@ -32,6 +32,11 @@ var StartApiCommand = cli.Command{
 			Name:  "sentry-dsn",
 			Usage: "DSN for Sentry error tracking",
 		},
+		&cli.StringSliceFlag{
+			Name:  "cors-origin",
+			Usage: "Allowed CORS origin (repeatable)",
+			Value: cli.NewStringSlice("https://osmonov.com"),
+		},
 	},
 	Action: func(c *cli.Context) error {
 		if err := sentry.Init(sentry.ClientOptions{Dsn: c.String("sentry-dsn")}); err != nil {
@@ -53,7 +58,7 @@ var StartApiCommand = cli.Command{
 
 		srv := &http.Server{
 			Addr:    c.String("listen-addr"),
-			Handler: mux,
+			Handler: api.CORS(c.StringSlice("cors-origin"), mux),
 		}
 
 		quit := make(chan os.Signal, 1)
