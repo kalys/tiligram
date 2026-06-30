@@ -1,4 +1,16 @@
 services:
+  caddy:
+    image: caddy:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+
   bot:
     command: './main start-bot --bot-token=${BOT_TOKEN} --sentry-dsn=${SENTRY_DSN} --mixpanel-token=${MIXPANEL_TOKEN}'
     image: kalys/tiligram:latest
@@ -14,7 +26,9 @@ services:
     restart: always
     env_file:
       - .env
-    ports:
-      - "8080:8080"
     volumes:
       - ./bleve.search:/root/bleve.search
+
+volumes:
+  caddy_data:
+  caddy_config:
