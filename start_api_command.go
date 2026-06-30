@@ -44,7 +44,7 @@ var StartApiCommand = cli.Command{
 		}
 		defer sentry.Flush(2 * time.Second)
 
-		index, err := bleve.Open(c.String("index-path"))
+		index, err := bleve.OpenUsing(c.String("index-path"), map[string]interface{}{"read_only": true})
 		if err != nil {
 			return err
 		}
